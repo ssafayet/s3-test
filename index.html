@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S3 Resumable Upload</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.0.3/resumable.min.js"></script>
+  <style>
+    #uploadStatus { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Upload File to S3</h1>
+  <input type="file" id="fileInput">
+  <button id="uploadButton">Start Upload</button>
+  <div id="uploadStatus"></div>
+
+  <script>
+    const uploadButton = document.getElementById('uploadButton');
+    const fileInput = document.getElementById('fileInput');
+    const uploadStatus = document.getElementById('uploadStatus');
+
+    const resumable = new Resumable({
+      target: '/upload',
+      chunkSize: 2 * 1024 * 1024, // 2MB chunks
+      simultaneousUploads: 3,
+      query: {}, // Additional data sent with requests
+      testChunks: true,
+      throttleProgressCallbacks: 1,
+    });
+
+    // Bind events
+    resumable.on('fileAdded', file => {
+      uploadStatus.innerText = `Uploading ${file.fileName}...`;
+      resumable.upload();
+    });
+
+    resumable.on('fileProgress', file => {
+      const progress = Math.floor(file.progress() * 100);
+      uploadStatus.innerText = `Uploading ${file.fileName}: ${progress}%`;
+    });
+
+    resumable.on('fileSuccess', async (file) => {
+      uploadStatus.innerText = `File ${file.fileName} uploaded.`;
+    });
+
+    resumable.on('fileError', (file, message) => {
+      uploadStatus.innerText = `Error uploading ${file.fileName}: ${message}`;
+    });
+
+    uploadButton.addEventListener('click', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        resumable.addFile(file);
+      } else {
+        alert('Please select a file first!');
+      }
+    });
+  </script>
+</body>
+</html>
